@@ -15,7 +15,7 @@ public interface IDishRepository {
 
 
     public Mono<Dish> createDish(Dish dish);
-    public void updateDish(Dish dish);
-    public void deleteDish(Dish dish);
+    public Mono<Dish> updateDish(Dish dish);
+    public Mono<Dish> deleteDish(Dish dish);
 
 }

@@ -41,12 +41,12 @@ public class DishService {
         return dishRepository.createDish(dish);
     }
 
-    public void updateDish(Dish dish){
-        dishRepository.updateDish(dish);
+    public Mono<Dish> updateDish(Dish dish){
+        return dishRepository.updateDish(dish);
     }
 
-    public void deleteDish(Dish dish){
-        dishRepository.deleteDish(dish);
+    public Mono<Dish> deleteDish(Dish dish){
+        return dishRepository.deleteDish(dish);
     }
 
 }

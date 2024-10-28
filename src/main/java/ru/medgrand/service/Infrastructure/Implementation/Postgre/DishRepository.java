@@ -77,7 +77,7 @@ public class DishRepository implements IDishRepository {
     public Mono<Dish> getDishByName(String name) {
         try {
             return r2dbcTemplate.getDatabaseClient()
-                    .sql("select * from dishes where name = " + name)
+                    .sql("select * from dishes where name = '" + name + "'")
                     .map(dishMapper)
                     .first();
         }
@@ -96,7 +96,8 @@ public class DishRepository implements IDishRepository {
                                 dishes.cost as cost,
                                 dishes.description as description
                             from orders_dishes
-                            join dishes on dishes.id = orders_dishes.dish_id""")
+                            join dishes on dishes.id = orders_dishes.dish_id
+                            where orders_dishes.order_id = """ + orderId)
                     .map(dishMapper)
                     .all();
         }
@@ -131,8 +132,8 @@ public class DishRepository implements IDishRepository {
     }
 
     @Override
-    public void updateDish(Dish dish) {
-        this.getDishById(dish.getId())
+    public Mono<Dish> updateDish(Dish dish) {
+        return this.getDishById(dish.getId())
                 .hasElement()
                 .flatMap(bool -> {
                     if(bool){
@@ -159,8 +160,8 @@ public class DishRepository implements IDishRepository {
     }
 
     @Override
-    public void deleteDish(Dish dish) {
-        this.getDishById(dish.getId())
+    public Mono<Dish> deleteDish(Dish dish) {
+        return this.getDishById(dish.getId())
                 .hasElement()
                 .flatMap(bool -> {
                     if(bool){

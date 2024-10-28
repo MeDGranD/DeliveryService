@@ -7,21 +7,21 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import ru.medgrand.service.Application.DishService;
+import ru.medgrand.service.Presentaion.Handlers.DishHandler;
 
 @Configuration
 public class Router {
 
-    private final DishService dishService;
-
-    @Autowired
-    public Router(DishService dishService){
-        this.dishService = dishService;
-    }
-
     @Bean
-    public RouterFunction<ServerResponse> route(){
+    public RouterFunction<ServerResponse> route(DishHandler dishHandler){
         return RouterFunctions.route()
-                .GET("/", req -> ServerResponse.ok().build())
+                .GET("/dishes/{id}", dishHandler::getDishById)
+                .GET("/dishes", dishHandler::getPaginationDishes)
+                .GET("/dishes/named/{name}", dishHandler::getDishByName)
+                .GET("/orders/{id}/dishes", dishHandler::getAllDishesByOrderId)
+                .POST("/dishes", dishHandler::createDish)
+                .PUT("/dishes", dishHandler::updateDish)
+                .DELETE("dishes/{id}", dishHandler::deleteDish)
                 .build();
     }
 
