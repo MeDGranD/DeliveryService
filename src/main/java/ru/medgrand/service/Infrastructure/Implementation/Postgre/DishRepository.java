@@ -2,6 +2,7 @@ package ru.medgrand.service.Infrastructure.Implementation.Postgre;
 
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Repository;
@@ -118,15 +119,15 @@ public class DishRepository implements IDishRepository {
                         r2dbcTemplate.getDatabaseClient()
                                 .sql("""
                                         insert into dishes (id, name, description, cost)
-                                        values (%d, %s, %s, %d)""".formatted
+                                        values (%d, '%s', '%s', %d)""".formatted
                                         (
                                                 dish.getId(),
                                                 dish.getName(),
                                                 dish.getDescription(),
                                                 dish.getCost()
                                         )
-                                );
-                            return Mono.just(dish);
+                                ).then().subscribe();
+                        return Mono.just(dish);
                     }
                 });
     }
@@ -140,8 +141,8 @@ public class DishRepository implements IDishRepository {
                         r2dbcTemplate.getDatabaseClient()
                                     .sql("""
                                             update dishes
-                                            set name = %s,
-                                                description = %s,
+                                            set name = '%s',
+                                                description = '%s',
                                                 cost = %d
                                             where id = %d""".formatted
                                             (
@@ -150,7 +151,7 @@ public class DishRepository implements IDishRepository {
                                                     dish.getCost(),
                                                     dish.getId()
                                             )
-                                    );
+                                    ).then().subscribe();
                         return Mono.just(dish);
                     }
                     else{
@@ -168,7 +169,7 @@ public class DishRepository implements IDishRepository {
                         r2dbcTemplate.getDatabaseClient()
                                     .sql("""
                                             delete from dishes
-                                            where id = %d""".formatted(dish.getId()));
+                                            where id = %d""".formatted(dish.getId())).then().subscribe();
                             return Mono.just(dish);
                     }
                     else{

@@ -37,12 +37,12 @@ public class OrderService {
         return orderRepository.createOrder(order);
     }
 
-    public void updateOrder(Order order){
-        orderRepository.updateOrder(order);
+    public Mono<Order> updateOrder(Order order){
+        return orderRepository.updateOrder(order);
     }
 
-    public void deleteOrder(Order order){
-        orderRepository.deleteOrder(order);
+    public Mono<Order> deleteOrder(Order order){
+        return orderRepository.deleteOrder(order);
     }
 
 }

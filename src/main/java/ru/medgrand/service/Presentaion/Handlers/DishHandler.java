@@ -73,16 +73,15 @@ public class DishHandler {
     public Mono<ServerResponse> createDish(ServerRequest request){
 
         Mono<Dish> dish = request.bodyToMono(Dish.class);
-        dish = dish.flatMap(dishService::createDish);
 
-        Mono<Dish> finalDish = dish;
-        return dish.hasElement()
+        return dish.flatMap(dishService::createDish)
+                .hasElement()
                 .flatMap(aBoolean -> {
                     if(aBoolean){
                         return ServerResponse
                                 .ok()
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .body(finalDish, Dish.class);
+                                .body(request.bodyToMono(Dish.class), Dish.class);
                     }
                     else{
                         return ServerResponse
@@ -97,7 +96,7 @@ public class DishHandler {
 
         Mono<Dish> dish = request.bodyToMono(Dish.class);
 
-        dish.flatMap(dishService::updateDish);
+        dish = dish.flatMap(dishService::updateDish);
 
         return dish.hasElement()
                 .flatMap(aBoolean -> {
@@ -123,7 +122,7 @@ public class DishHandler {
         dish.setId(id);
 
         Mono<Dish> deleteDish = Mono.just(dish);
-        deleteDish.flatMap(dishService::deleteDish);
+        deleteDish = deleteDish.flatMap(dishService::deleteDish);
 
         return deleteDish.hasElement()
                 .flatMap(aBoolean -> {

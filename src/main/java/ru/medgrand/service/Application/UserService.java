@@ -37,12 +37,12 @@ public class UserService {
         return userRepository.createUser(user);
     }
 
-    public void deleteUser(User user){
-        userRepository.deleteUser(user);
+    public Mono<User> deleteUser(User user){
+         return userRepository.deleteUser(user);
     }
 
-    public void updateUser(User user){
-        userRepository.updateUser(user);
+    public Mono<User> updateUser(User user){
+        return userRepository.updateUser(user);
     }
 
 }

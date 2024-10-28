@@ -13,7 +13,7 @@ public interface IOrderRepository {
     public Mono<Order> getOrderById(long id);
 
     public Mono<Order> createOrder(Order order);
-    public void deleteOrder(Order order);
-    public void updateOrder(Order order);
+    public Mono<Order> deleteOrder(Order order);
+    public Mono<Order> updateOrder(Order order);
 
 }

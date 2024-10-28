@@ -2,6 +2,7 @@ package ru.medgrand.service.Infrastructure.Implementation.Postgre;
 
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Repository;
@@ -12,17 +13,19 @@ import ru.medgrand.service.Infrastructure.IOrderRepository;
 import ru.medgrand.service.Infrastructure.IUserRepository;
 import ru.medgrand.service.Model.Dish;
 import ru.medgrand.service.Model.Order;
+import ru.medgrand.service.Model.User;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.function.BiFunction;
 
 @Repository
 public class OrderRepository implements IOrderRepository {
 
     private final R2dbcEntityTemplate r2dbcTemplate;
-    private final BiFunction<Row, RowMetadata, Order> orderMapper;
+    private final BiFunction<Row, RowMetadata, parsedOrder> orderMapper;
     private final IDishRepository dishRepository;
     private final IUserRepository userRepository;
 
@@ -36,14 +39,13 @@ public class OrderRepository implements IOrderRepository {
         this.userRepository = userRepository;
 
         orderMapper = (row, rowMetadata) -> {
-            Order returnOrder = new Order();
+            parsedOrder returnOrder = new parsedOrder();
             returnOrder.setId(row.get("id", Long.class));
-            this.dishRepository.getAllDishesByOrderId(returnOrder.getId()).collectList().subscribe(returnOrder::setDishes);
             returnOrder.setAddress(row.get("address", String.class));
             returnOrder.setDeliveryDate(row.get("deliveryDate", LocalDateTime.class));
             returnOrder.setCreationDate(row.get("creationDate", LocalDateTime.class));
-            this.userRepository.getUserById(row.get("user_id", Integer.class)).subscribe(returnOrder::setUser);
-            returnOrder.setSum(returnOrder.getDishes().stream().mapToLong(Dish::getCost).sum());
+            returnOrder.setUserId(row.get("user_id", Long.class));
+
             return returnOrder;
         };
 
@@ -55,9 +57,27 @@ public class OrderRepository implements IOrderRepository {
             return r2dbcTemplate.getDatabaseClient()
                     .sql("""
                             select *
-                            from orders""")
+                            from orders
+                            """)
                     .map(orderMapper)
-                    .all();
+                    .all()
+                    .flatMap(parsedOrder -> {
+
+                        Order order = new Order();
+                        order.setId(parsedOrder.getId());
+                        order.setAddress(parsedOrder.getAddress());
+                        order.setDeliveryDate(parsedOrder.getDeliveryDate());
+                        order.setCreationDate(parsedOrder.getCreationDate());
+
+                        Mono<User> user = this.userRepository.getUserById(parsedOrder.getUserId());
+                        Flux<Dish> dishes = this.dishRepository.getAllDishesByOrderId(order.getId());
+
+                        user.subscribe(order::setUser);
+                        dishes.collectList().subscribe(order::setDishes);
+
+                        return user.thenMany(dishes).then(Mono.just(order));
+
+                    });
         }
         catch (NullPointerException exp){
             return Flux.empty();
@@ -71,10 +91,27 @@ public class OrderRepository implements IOrderRepository {
                     .sql("""
                             select *
                             from orders
-                            limit """ + Integer.toString(limit) +
-                            "offset " + Integer.toString(skip))
+                            limit""" + " " + Integer.toString(limit) +
+                            " offset " + Integer.toString(skip))
                     .map(orderMapper)
-                    .all();
+                    .all()
+                    .flatMap(parsedOrder -> {
+
+                        Order order = new Order();
+                        order.setId(parsedOrder.getId());
+                        order.setAddress(parsedOrder.getAddress());
+                        order.setDeliveryDate(parsedOrder.getDeliveryDate());
+                        order.setCreationDate(parsedOrder.getCreationDate());
+
+                        Mono<User> user = this.userRepository.getUserById(parsedOrder.getUserId());
+                        Flux<Dish> dishes = this.dishRepository.getAllDishesByOrderId(order.getId());
+
+                        user.subscribe(order::setUser);
+                        dishes.collectList().subscribe(order::setDishes);
+
+                        return user.thenMany(dishes).then(Mono.just(order));
+
+                    });
         }
         catch (NullPointerException exp){
             return Flux.empty();
@@ -85,12 +122,30 @@ public class OrderRepository implements IOrderRepository {
     public Flux<Order> getAllOrdersByUser(String username) {
         try {
             return r2dbcTemplate.getDatabaseClient()
-                    .sql("with userId as (select users.id from users where users.username = " + username + " )" + """
+                    .sql("""
                             select *
                             from orders
-                            where orders.user_id = userId""")
+                            join users on orders.user_id = users.id
+                            where users.username =""" + "'" + username + "'")
                     .map(orderMapper)
-                    .all();
+                    .all()
+                    .flatMap(parsedOrder -> {
+
+                        Order order = new Order();
+                        order.setId(parsedOrder.getId());
+                        order.setAddress(parsedOrder.getAddress());
+                        order.setDeliveryDate(parsedOrder.getDeliveryDate());
+                        order.setCreationDate(parsedOrder.getCreationDate());
+
+                        Mono<User> user = this.userRepository.getUserById(parsedOrder.getUserId());
+                        Flux<Dish> dishes = this.dishRepository.getAllDishesByOrderId(order.getId());
+
+                        user.subscribe(order::setUser);
+                        dishes.collectList().subscribe(order::setDishes);
+
+                        return user.thenMany(dishes).then(Mono.just(order));
+
+                    });
         }
         catch (NullPointerException exp){
             return Flux.empty();
@@ -106,7 +161,24 @@ public class OrderRepository implements IOrderRepository {
                             from orders
                             where orders.id = """ + Long.toString(id))
                     .map(orderMapper)
-                    .first();
+                    .first()
+                    .flatMap(parsedOrder -> {
+
+                        Order order = new Order();
+                        order.setId(parsedOrder.getId());
+                        order.setAddress(parsedOrder.getAddress());
+                        order.setDeliveryDate(parsedOrder.getDeliveryDate());
+                        order.setCreationDate(parsedOrder.getCreationDate());
+
+                        Mono<User> user = this.userRepository.getUserById(parsedOrder.getUserId());
+                        Flux<Dish> dishes = this.dishRepository.getAllDishesByOrderId(order.getId());
+
+                        user.subscribe(order::setUser);
+                        dishes.collectList().subscribe(order::setDishes);
+
+                        return user.thenMany(dishes).then(Mono.just(order));
+
+                    });
         }
         catch (NullPointerException exp){
             return Mono.empty();
@@ -126,25 +198,24 @@ public class OrderRepository implements IOrderRepository {
                                 .hasElement()
                                 .flatMap(userBool -> {
                                     if(userBool){
-                                        DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
                                         r2dbcTemplate.getDatabaseClient()
                                                 .sql("""
-                                                        insert into orders (id, u_id, address, creationDate, deliveryDate)
-                                                        values (%d, %d, %s, %s, %s)""".formatted
+                                                        insert into orders (id, user_id, address, creationDate, deliveryDate)
+                                                        values (%d, %d, '%s', '%s', '%s')""".formatted
                                                         (
                                                                 order.getId(),
                                                                 order.getUser().getId(),
                                                                 order.getAddress(),
-                                                                df.format(order.getCreationDate()),
-                                                                df.format(order.getDeliveryDate())
+                                                                order.getCreationDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")),
+                                                                order.getDeliveryDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"))
                                                         )
-                                                );
+                                                ).then().subscribe();
                                         order.getDishes()
                                                 .forEach(dish -> {
                                                     r2dbcTemplate.getDatabaseClient()
                                                             .sql("""
-                                                                    insert into orders_dishes (o_id, d_id)
-                                                                    values (%d, %d)""".formatted(order.getId(), dish.getId()));
+                                                                    insert into orders_dishes (order_id, dish_id, quantity)
+                                                                    values (%d, %d, 1)""".formatted(order.getId(), dish.getId())).then().subscribe();
                                                 });
                                         return Mono.just(order);
                                     }
@@ -157,19 +228,19 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
-    public void deleteOrder(Order order) {
-        this.getOrderById(order.getId())
+    public Mono<Order> deleteOrder(Order order) {
+        return this.getOrderById(order.getId())
                 .hasElement()
                 .flatMap(bool -> {
                     if(bool){
                         r2dbcTemplate.getDatabaseClient()
                                 .sql("""
                                         delete from orders
-                                        where id = %d""".formatted(order.getId()));
+                                        where id = %d""".formatted(order.getId())).then().subscribe();
                         r2dbcTemplate.getDatabaseClient()
                                 .sql("""
                                         delete from orders_dishes
-                                        where o_id = %d""".formatted(order.getId()));
+                                        where order_id = %d""".formatted(order.getId())).then().subscribe();
                         return Mono.just(order);
                     }
                     else{
@@ -179,38 +250,37 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
-    public void updateOrder(Order order) {
-        this.getOrderById(order.getId())
+    public Mono<Order> updateOrder(Order order) {
+        return this.getOrderById(order.getId())
                 .hasElement()
                 .flatMap(bool -> {
                    if(bool){
-                       DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
                        r2dbcTemplate.getDatabaseClient()
                                .sql("""
                                        update orders
-                                       set u_id = %d,
-                                            address = %s,
-                                            creationDate = %s,
-                                            deliveryDate = %s,
+                                       set user_id = %d,
+                                            address = '%s',
+                                            creationDate = '%s',
+                                            deliveryDate = '%s',
                                        where id = %d""".formatted
                                        (
                                                order.getUser().getId(),
                                                order.getAddress(),
-                                               df.format(order.getCreationDate()),
-                                               df.format(order.getDeliveryDate()),
+                                               order.getCreationDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")),
+                                               order.getDeliveryDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")),
                                                order.getId()
                                        )
-                               );
+                               ).then().subscribe();
                        r2dbcTemplate.getDatabaseClient()
                                .sql("""
                                         delete from orders_dishes
-                                        where o_id = %d""".formatted(order.getId()));
+                                        where order_id = %d""".formatted(order.getId())).then().subscribe();
                        order.getDishes()
                                .forEach(dish -> {
                                    r2dbcTemplate.getDatabaseClient()
                                            .sql("""
-                                                                    insert into orders_dishes (o_id, d_id)
-                                                                    values (%d, %d)""".formatted(order.getId(), dish.getId()));
+                                                                    insert into orders_dishes (order_id, dish_id, quantity)
+                                                                    values (%d, %d, 1)""".formatted(order.getId(), dish.getId())).then().subscribe();
                                });
 
                        return Mono.just(order);
@@ -220,4 +290,16 @@ public class OrderRepository implements IOrderRepository {
                    }
                 });
     }
+}
+
+@Data
+class parsedOrder {
+
+    private Long Id;
+    private Long UserId;
+    private String address;
+
+    private LocalDateTime creationDate;
+    private LocalDateTime deliveryDate;
+
 }

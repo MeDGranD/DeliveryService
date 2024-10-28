@@ -82,7 +82,6 @@ public class UserRepository implements IUserRepository {
                     .sql("""
                             select *
                             from users
-                            join roles on roles.id = users.role_id
                             where users.id = """ + Long.toString(id))
                     .map(userMapper)
                     .first();
@@ -123,7 +122,7 @@ public class UserRepository implements IUserRepository {
                                 .sql("""
                                         with roleId as (select id from roles where role = %s)
                                         insert into users (id, username, password, role_id, creationDate, birthday)
-                                        values (%d, %s, %s, roleId, %s, %s)""".formatted
+                                        values (%d, '%s', '%s', roleId, '%s', '%s')""".formatted
                                         (
                                                 user.getRole(),
                                                 user.getId(),
@@ -139,8 +138,8 @@ public class UserRepository implements IUserRepository {
     }
 
     @Override
-    public void deleteUser(User user) {
-        this.getUserById(user.getId())
+    public Mono<User> deleteUser(User user) {
+        return this.getUserById(user.getId())
                 .hasElement()
                 .flatMap(bool -> {
                     if(bool){
@@ -157,21 +156,21 @@ public class UserRepository implements IUserRepository {
     }
 
     @Override
-    public void updateUser(User user) {
-        this.getUserById(user.getId())
+    public Mono<User> updateUser(User user) {
+        return this.getUserById(user.getId())
                 .hasElement()
                 .flatMap(bool -> {
                     if(bool){
                         DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
                         r2dbcTemplate.getDatabaseClient()
                                 .sql("""
-                                        with roleId as (select id from roles where role = %s)
+                                        with roleId as (select id from roles where role = '%s')
                                         update users
-                                        set username = %s,
-                                            password = %s,
+                                        set username = '%s',
+                                            password = '%s',
                                             role_id = roleId,
-                                            creationDate = %s,
-                                            birthday = %s
+                                            creationDate = '%s',
+                                            birthday = '%s'
                                         where id = %d""".formatted
                                         (
                                                 user.getRole(),

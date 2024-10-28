@@ -13,7 +13,7 @@ public interface IUserRepository {
     public Mono<User> getUserByName(String name);
 
     public Mono<User> createUser(User user);
-    public void deleteUser(User user);
-    public void updateUser(User user);
+    public Mono<User> deleteUser(User user);
+    public Mono<User> updateUser(User user);
 
 }
