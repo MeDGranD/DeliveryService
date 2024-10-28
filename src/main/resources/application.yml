@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: service
+  r2dbc:
+    url: 'r2dbc:postgesql://localhost:5432/mydatabase'
+    username: 'myuser'
+    password: 'secret'
+
+logging:
+  level:
+    org:
+      springframework:
+        r2dbc: DEBUG
